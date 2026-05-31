@@ -78,6 +78,9 @@
 
     /* CSV button */
     .csv-btn { width: 100%; margin-top: 20px; padding: 13px; border-radius: 12px; border: 1.5px solid #333; background: #1a1a1a; color: #666; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .csv-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 20px; }
+    .csv-btn-import { padding: 13px; border-radius: 12px; border: 1.5px solid #4A90D933; background: #4A90D911; color: #4A90D9; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    .csv-btn-export { padding: 13px; border-radius: 12px; border: 1.5px solid #333; background: #1a1a1a; color: #666; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
 
     .empty { text-align: center; color: #333; margin-top: 60px; font-size: 14px; }
   </style>
@@ -188,6 +191,69 @@ function exportCSV() {
   URL.revokeObjectURL(url);
 }
 
+// ── CSV Import ─────────────────────────────────────────
+function importCSV() {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".csv";
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const text = ev.target.result.replace(/^\uFEFF/, ""); // strip BOM
+      const lines = text.trim().split("\n").filter(l => l.trim());
+      const imported = [];
+      lines.forEach((line, i) => {
+        const parts = line.split(",");
+        if (parts.length < 4) return;
+        const [date, type, amount, account, toAccount] = parts.map(p => p.trim());
+        if (!date || !type || !amount) return;
+
+        // map account names back to IDs
+        const accId = ACCOUNTS.find(a => a.name === account)?.id || account;
+        const toAccId = toAccount ? ACCOUNTS.find(a => a.name === toAccount)?.id || toAccount : null;
+
+        // skip header row
+        if (type === "Type" || isNaN(Number(amount))) return;
+
+        const id = Date.now() + i;
+        if (type === "transfer") {
+          imported.push({ id: id+1, type: "transfer-out", amount: Number(amount), account: accId, toAccount: toAccId, date });
+          imported.push({ id: id+2, type: "transfer-in",  amount: Number(amount), account: toAccId, fromAccount: accId, date });
+        } else {
+          imported.push({ id, type, amount: Number(amount), account: accId, date });
+        }
+      });
+
+      if (imported.length === 0) {
+        alert("No valid transactions found in CSV.");
+        return;
+      }
+
+      // merge with existing, deduplicate by date+type+amount+account
+      const existing = txs;
+      const merged = [...imported];
+      existing.forEach(t => {
+        const duplicate = imported.find(i =>
+          i.date === t.date && i.type === t.type &&
+          i.amount === t.amount && i.account === t.account
+        );
+        if (!duplicate) merged.push(t);
+      });
+
+      // sort by date descending
+      merged.sort((a, b) => b.date.localeCompare(a.date));
+      txs = merged;
+      saveData();
+      alert(`✓ Imported ${imported.filter(t => t.type !== "transfer-in").length} transactions!`);
+      render();
+    };
+    reader.readAsText(file, "UTF-8");
+  };
+  input.click();
+}
+
 // ── Render helpers ─────────────────────────────────────
 function txRowHTML(t, showDelete) {
   if (t.type === "transfer-in") return "";
@@ -285,7 +351,7 @@ function render() {
 
     // amount
     const borderColor = amount ? typeColor + "66" : "#222";
-    html += `<input class="amount-input" style="border-color:${borderColor}" type="number" placeholder="¥ 0" value="${amount}" oninput="setAmount(this.value)" inputmode="numeric" />`;
+    html += `<input id="amount-input" class="amount-input" style="border-color:${borderColor}" type="number" placeholder="¥ 0" value="${amount}" oninput="amount=this.value" inputmode="numeric" />`;
 
     // accounts
     if (type === "transfer") {
@@ -304,11 +370,10 @@ function render() {
     // date
     html += `<input class="date-input" type="date" value="${date}" onchange="setDate(this.value)" />`;
 
-    // submit
-    const disabled = !amount || (type === "transfer" && account === toAccount);
+    // submit — always enabled, validation happens inside addTx
     const btnBg = savedFlash ? "#22c55e" : typeColor;
     const btnLabel = savedFlash ? "✓ Done!" : type === "transfer" ? "Transfer" : type === "expense" ? "Add Expense" : "Add Income";
-    html += `<button class="submit-btn" style="background:${btnBg};opacity:${disabled?0.4:1}" ${disabled?"disabled":""} onclick="addTx()">${btnLabel}</button>`;
+    html += `<button class="submit-btn" style="background:${btnBg}" onclick="amount=document.getElementById('amount-input')?.value||amount;addTx()">${btnLabel}</button>`;
 
     // today list
     const visibleToday = todayTxs.filter(t => t.type !== "transfer-in");
@@ -339,7 +404,10 @@ function render() {
       filteredTxs.forEach(t => { html += txRowHTML(t, true); });
     }
 
-    html += `<button class="csv-btn" onclick="exportCSV()">⬇ Export CSV</button>`;
+    html += `<div class="csv-row">
+      <button class="csv-btn-import" onclick="importCSV()">⬆ Import CSV</button>
+      <button class="csv-btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+    </div>`;
     html += `</div>`;
   }
 
@@ -387,7 +455,10 @@ function render() {
         <div class="month-card gold"><div class="month-label gold">SAVED</div><div class="month-value" style="color:#f59e0b">¥${mSaved.toLocaleString()}</div></div>
       </div>`;
 
-    html += `<button class="csv-btn" onclick="exportCSV()">⬇ Export All CSV</button>`;
+    html += `<div class="csv-row">
+      <button class="csv-btn-import" onclick="importCSV()">⬆ Import CSV</button>
+      <button class="csv-btn-export" onclick="exportCSV()">⬇ Export All CSV</button>
+    </div>`;
     html += `</div>`;
   }
 
@@ -397,7 +468,7 @@ function render() {
 // ── Setters ────────────────────────────────────────────
 function setView(v)       { view = v; render(); }
 function setType(t)       { type = t; render(); }
-function setAmount(v)     { amount = v; render(); }
+function setAmount(v)     { amount = v; /* no render — input handles itself */ }
 function setAccount(v)    { account = v; render(); }
 function setToAccount(v)  { toAccount = v; render(); }
 function setDate(v)       { date = v; render(); }
