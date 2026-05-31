@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="お金メモ" />
+  <title>お金メモ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: #0f0f0f; color: #f0ede8; font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif; min-height: 100vh; }
+    #app { max-width: 420px; margin: 0 auto; min-height: 100vh; padding-bottom: 90px; }
+
+    /* Header */
+    .header { padding: env(safe-area-inset-top, 24px) 20px 16px; padding-top: max(env(safe-area-inset-top), 24px); border-bottom: 1px solid #1a1a1a; }
+    .header-label { font-size: 11px; letter-spacing: 3px; color: #444; margin-bottom: 2px; }
+    .header-title { font-size: 26px; font-weight: 700; letter-spacing: -1px; }
+    .header-cards { margin-top: 12px; display: flex; gap: 10px; }
+    .header-card { flex: 1; background: #1a1a1a; border-radius: 10px; padding: 10px 12px; }
+    .header-card.savings { border: 1px solid #f59e0b33; }
+    .card-label { font-size: 10px; color: #555; margin-bottom: 3px; }
+    .card-label.gold { color: #f59e0b99; }
+    .card-value { font-size: 20px; font-weight: 700; }
+
+    /* Nav */
+    .nav { display: flex; border-bottom: 1px solid #1a1a1a; background: #0f0f0f; position: sticky; top: 0; z-index: 10; }
+    .nav-btn { flex: 1; padding: 13px 0; background: none; border: none; border-bottom: 2px solid transparent; color: #444; font-size: 13px; font-family: inherit; cursor: pointer; }
+    .nav-btn.active { color: #f0ede8; font-weight: 700; border-bottom-color: #f0ede8; }
+
+    /* Log view */
+    .section { padding: 20px; }
+
+    .type-toggle { display: flex; background: #1a1a1a; border-radius: 10px; padding: 4px; margin-bottom: 16px; gap: 4px; }
+    .type-btn { flex: 1; padding: 9px 0; border-radius: 7px; border: none; background: transparent; color: #555; font-weight: 700; font-size: 12px; font-family: inherit; cursor: pointer; transition: all .15s; }
+    .type-btn.expense.active { background: #ef4444; color: #fff; }
+    .type-btn.income.active { background: #22c55e; color: #fff; }
+    .type-btn.transfer.active { background: #a78bfa; color: #fff; }
+
+    .amount-input { width: 100%; background: #1a1a1a; border: 1px solid #222; border-radius: 10px; padding: 14px 16px; font-size: 30px; font-weight: 700; color: #f0ede8; outline: none; font-family: inherit; transition: border .2s; margin-bottom: 14px; }
+
+    .section-label { font-size: 10px; color: #555; letter-spacing: 2px; margin-bottom: 8px; }
+    .account-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .account-btn { padding: 10px 12px; border-radius: 10px; border: 1.5px solid #2a2a2a; background: #1a1a1a; color: #777; font-weight: 600; font-size: 12px; font-family: inherit; cursor: pointer; text-align: left; transition: all .15s; }
+
+    .transfer-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .transfer-col-label { font-size: 10px; color: #666; margin-bottom: 6px; }
+    .transfer-acc-btn { display: block; width: 100%; margin-bottom: 6px; padding: 9px 10px; border-radius: 9px; border: 1.5px solid #2a2a2a; background: #1a1a1a; color: #666; font-weight: 600; font-size: 11px; font-family: inherit; cursor: pointer; text-align: left; transition: all .15s; }
+
+    .date-input { width: 100%; background: #1a1a1a; border: 1px solid #222; border-radius: 10px; padding: 11px 14px; font-size: 13px; color: #888; outline: none; font-family: inherit; margin-bottom: 12px; }
+
+    .submit-btn { width: 100%; padding: 15px; border-radius: 12px; border: none; color: #fff; font-size: 15px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all .2s; }
+
+    /* Today list */
+    .today-section { margin-top: 24px; }
+    .tx-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid #1a1a1a; }
+    .tx-left { display: flex; align-items: center; gap: 10px; }
+    .tx-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .tx-label { font-size: 13px; color: #888; }
+    .tx-right { display: flex; align-items: center; gap: 10px; }
+    .tx-amount { font-weight: 700; font-size: 15px; }
+    .del-btn { background: none; border: none; color: #444; font-size: 18px; cursor: pointer; line-height: 1; padding: 4px; }
+
+    /* History */
+    .day-summary { display: flex; justify-content: space-between; background: #1a1a1a; border-radius: 10px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px; }
+
+    /* Summary */
+    .savings-highlight { background: #f59e0b0d; border: 1.5px solid #f59e0b44; border-radius: 14px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+    .savings-icon { width: 44px; height: 44px; border-radius: 12px; background: #f59e0b22; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .account-row { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; }
+    .account-row-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .month-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .month-card { background: #1a1a1a; border-radius: 12px; padding: 12px; }
+    .month-card.gold { background: #f59e0b0d; border: 1px solid #f59e0b33; }
+    .month-label { font-size: 9px; color: #555; margin-bottom: 4px; }
+    .month-label.gold { color: #f59e0b88; }
+    .month-value { font-size: 16px; font-weight: 700; }
+
+    /* CSV button */
+    .csv-btn { width: 100%; margin-top: 20px; padding: 13px; border-radius: 12px; border: 1.5px solid #333; background: #1a1a1a; color: #666; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; }
+
+    .empty { text-align: center; color: #333; margin-top: 60px; font-size: 14px; }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const ACCOUNTS = [
+  { id: "paypay",   name: "PayPay",   icon: "📱", color: "#FF0033" },
+  { id: "yucho",    name: "ゆうちょ",  icon: "🏦", color: "#4A90D9" },
+  { id: "hokuriku", name: "北陸銀行", icon: "🏛",  color: "#2E6B4F" },
+  { id: "cash",     name: "Cash",     icon: "💴", color: "#B8860B" },
+  { id: "savings",  name: "Savings",  icon: "🪙", color: "#f59e0b" },
+];
+
+const SPENDABLE = ACCOUNTS.filter(a => a.id !== "savings");
+
+// ── State ──────────────────────────────────────────────
+let txs = [];
+let view = "log";
+let type = "expense";
+let amount = "";
+let account = "paypay";
+let toAccount = "yucho";
+let date = todayStr();
+let filterDate = todayStr();
+let savedFlash = false;
+
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function formatDate(s) {
+  return new Date(s).toLocaleDateString("ja-JP", { month: "short", day: "numeric", weekday: "short" });
+}
+
+// ── Storage ────────────────────────────────────────────
+function loadData() {
+  try { return JSON.parse(localStorage.getItem("okane_txs") || "[]"); } catch { return []; }
+}
+
+function saveData() {
+  try { localStorage.setItem("okane_txs", JSON.stringify(txs)); } catch {}
+}
+
+// ── Actions ────────────────────────────────────────────
+function addTx() {
+  const n = Number(amount);
+  if (!amount || isNaN(n) || n <= 0) return;
+  if (type === "transfer") {
+    if (account === toAccount) return;
+    const id = Date.now();
+    txs = [
+      { id: id+1, type: "transfer-out", amount: n, account, toAccount, date },
+      { id: id+2, type: "transfer-in",  amount: n, account: toAccount, fromAccount: account, date },
+      ...txs
+    ];
+  } else {
+    txs = [{ id: Date.now(), type, amount: n, account, date }, ...txs];
+  }
+  saveData();
+  amount = "";
+  flash();
+}
+
+function deleteTx(id) {
+  txs = txs.filter(t => t.id !== id);
+  saveData();
+  render();
+}
+
+function flash() {
+  savedFlash = true;
+  render();
+  setTimeout(() => { savedFlash = false; render(); }, 1200);
+}
+
+// ── Derived ────────────────────────────────────────────
+function getBalances() {
+  const b = {};
+  ACCOUNTS.forEach(a => {
+    b[a.id] = txs.reduce((s, t) => {
+      if (t.account !== a.id) return s;
+      if (t.type === "income" || t.type === "transfer-in") return s + t.amount;
+      if (t.type === "expense" || t.type === "transfer-out") return s - t.amount;
+      return s;
+    }, 0);
+  });
+  return b;
+}
+
+// ── CSV Export ─────────────────────────────────────────
+function exportCSV() {
+  const header = "Date,Type,Amount,Account,To Account\n";
+  const rows = txs.map(t => {
+    const toAcc = t.toAccount ? ACCOUNTS.find(a => a.id === t.toAccount)?.name : "";
+    const acc = ACCOUNTS.find(a => a.id === t.account)?.name || t.account;
+    return `${t.date},${t.type},${t.amount},${acc},${toAcc}`;
+  });
+  const csv = header + rows.join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }); // BOM for Excel
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `okane_${todayStr()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Render helpers ─────────────────────────────────────
+function txRowHTML(t, showDelete) {
+  if (t.type === "transfer-in") return "";
+  const acc = ACCOUNTS.find(a => a.id === t.account);
+  const toAcc = t.toAccount ? ACCOUNTS.find(a => a.id === t.toAccount) : null;
+
+  let label = acc.name;
+  let color = "#f0ede8";
+  let sign = "";
+
+  if (t.type === "expense") { color = "#ef4444"; sign = "-"; }
+  if (t.type === "income")  { color = "#22c55e"; sign = "+"; }
+  if (t.type === "transfer-out") {
+    label = `${acc.name} → ${toAcc?.name}`;
+    color = toAcc?.id === "savings" ? "#f59e0b" : acc?.id === "savings" ? "#f87171" : "#a78bfa";
+    sign  = toAcc?.id === "savings" ? "🪙" : acc?.id === "savings" ? "💸" : "→";
+  }
+
+  const delBtn = showDelete
+    ? `<button class="del-btn" onclick="deleteTx(${t.id})">×</button>`
+    : "";
+
+  return `
+    <div class="tx-row">
+      <div class="tx-left">
+        <div class="tx-icon" style="background:${acc.color}22">${acc.icon}</div>
+        <div class="tx-label">${label}</div>
+      </div>
+      <div class="tx-right">
+        <div class="tx-amount" style="color:${color}">${sign} ¥${t.amount.toLocaleString()}</div>
+        ${delBtn}
+      </div>
+    </div>`;
+}
+
+function accountBtnHTML(a, selectedId, extra = "") {
+  const active = a.id === selectedId;
+  const border = active ? a.color : "#2a2a2a";
+  const bg     = active ? a.color + "22" : "#1a1a1a";
+  const col    = active ? a.color : "#777";
+  return `<button class="account-btn" style="border-color:${border};background:${bg};color:${col}" ${extra} onclick="setAccount('${a.id}')">${a.icon} ${a.name}</button>`;
+}
+
+function toAccountBtnHTML(a, selectedId, fromId) {
+  const active = a.id === selectedId;
+  const border = active ? a.color : "#2a2a2a";
+  const bg     = active ? a.color + "22" : "#1a1a1a";
+  const col    = active ? a.color : "#666";
+  const op     = a.id === fromId ? "opacity:.3;pointer-events:none" : "";
+  return `<button class="transfer-acc-btn" style="border-color:${border};background:${bg};color:${col};${op}" onclick="setToAccount('${a.id}')">${a.icon} ${a.name}</button>`;
+}
+
+// ── Main render ────────────────────────────────────────
+function render() {
+  const balances = getBalances();
+  const todayTxs = txs.filter(t => t.date === todayStr());
+  const todaySpend = todayTxs.filter(t => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+  const typeColor = type === "expense" ? "#ef4444" : type === "income" ? "#22c55e" : "#a78bfa";
+  const filteredTxs = txs.filter(t => t.date === filterDate);
+
+  // ── Header ──
+  let html = `
+    <div class="header">
+      <div class="header-label">FINANCE</div>
+      <div class="header-title">お金メモ</div>
+      <div class="header-cards">
+        <div class="header-card">
+          <div class="card-label">TODAY OUT</div>
+          <div class="card-value" style="color:#ef4444">¥${todaySpend.toLocaleString()}</div>
+        </div>
+        <div class="header-card savings">
+          <div class="card-label gold">🪙 SAVINGS</div>
+          <div class="card-value" style="color:#f59e0b">¥${balances.savings.toLocaleString()}</div>
+        </div>
+      </div>
+    </div>`;
+
+  // ── Nav ──
+  const navItems = [["log","＋ Log"],["history","履歴"],["summary","残高"]];
+  html += `<div class="nav">`;
+  navItems.forEach(([v, label]) => {
+    html += `<button class="nav-btn ${view===v?"active":""}" onclick="setView('${v}')">${label}</button>`;
+  });
+  html += `</div>`;
+
+  // ── Views ──
+  if (view === "log") {
+    // type toggle
+    const typeBtns = [["expense","支出"],["income","収入"],["transfer","振替"]];
+    html += `<div class="section"><div class="type-toggle">`;
+    typeBtns.forEach(([t, label]) => {
+      html += `<button class="type-btn ${t} ${type===t?"active":""}" onclick="setType('${t}')">${label}</button>`;
+    });
+    html += `</div>`;
+
+    // amount
+    const borderColor = amount ? typeColor + "66" : "#222";
+    html += `<input class="amount-input" style="border-color:${borderColor}" type="number" placeholder="¥ 0" value="${amount}" oninput="setAmount(this.value)" inputmode="numeric" />`;
+
+    // accounts
+    if (type === "transfer") {
+      html += `<div><div class="section-label">FROM → TO</div><div class="transfer-cols">`;
+      html += `<div><div class="transfer-col-label">FROM</div>`;
+      ACCOUNTS.forEach(a => { html += toAccountBtnHTML(a, account, null).replace("setToAccount","setAccount"); });
+      html += `</div><div><div class="transfer-col-label">TO</div>`;
+      ACCOUNTS.forEach(a => { html += toAccountBtnHTML(a, toAccount, account); });
+      html += `</div></div></div>`;
+    } else {
+      html += `<div><div class="section-label">ACCOUNT</div><div class="account-grid">`;
+      SPENDABLE.forEach(a => { html += accountBtnHTML(a, account); });
+      html += `</div></div>`;
+    }
+
+    // date
+    html += `<input class="date-input" type="date" value="${date}" onchange="setDate(this.value)" />`;
+
+    // submit
+    const disabled = !amount || (type === "transfer" && account === toAccount);
+    const btnBg = savedFlash ? "#22c55e" : typeColor;
+    const btnLabel = savedFlash ? "✓ Done!" : type === "transfer" ? "Transfer" : type === "expense" ? "Add Expense" : "Add Income";
+    html += `<button class="submit-btn" style="background:${btnBg};opacity:${disabled?0.4:1}" ${disabled?"disabled":""} onclick="addTx()">${btnLabel}</button>`;
+
+    // today list
+    const visibleToday = todayTxs.filter(t => t.type !== "transfer-in");
+    if (visibleToday.length > 0) {
+      html += `<div class="today-section"><div class="section-label">TODAY</div>`;
+      todayTxs.forEach(t => { html += txRowHTML(t, false); });
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+  }
+
+  if (view === "history") {
+    html += `<div class="section">`;
+    html += `<input class="date-input" type="date" value="${filterDate}" onchange="setFilterDate(this.value)" style="margin-bottom:14px" />`;
+
+    const visible = filteredTxs.filter(t => t.type !== "transfer-in");
+    if (visible.length === 0) {
+      html += `<div class="empty">No records</div>`;
+    } else {
+      const dayOut = filteredTxs.filter(t => t.type === "expense").reduce((s,t) => s+t.amount, 0);
+      const dayIn  = filteredTxs.filter(t => t.type === "income").reduce((s,t) => s+t.amount, 0);
+      html += `<div class="day-summary">
+        <span style="color:#ef4444">-¥${dayOut.toLocaleString()}</span>
+        <span style="color:#444">${formatDate(filterDate)}</span>
+        <span style="color:#22c55e">+¥${dayIn.toLocaleString()}</span>
+      </div>`;
+      filteredTxs.forEach(t => { html += txRowHTML(t, true); });
+    }
+
+    html += `<button class="csv-btn" onclick="exportCSV()">⬇ Export CSV</button>`;
+    html += `</div>`;
+  }
+
+  if (view === "summary") {
+    html += `<div class="section">`;
+
+    // savings card
+    const savTxCount = txs.filter(t => t.account === "savings").length;
+    html += `
+      <div class="savings-highlight">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="savings-icon">🪙</div>
+          <div>
+            <div style="font-weight:700;font-size:15px">Savings</div>
+            <div style="font-size:11px;color:#f59e0b88">${savTxCount} transactions</div>
+          </div>
+        </div>
+        <div style="font-weight:800;font-size:22px;color:#f59e0b">¥${balances.savings.toLocaleString()}</div>
+      </div>`;
+
+    html += `<div class="section-label">OTHER ACCOUNTS</div>`;
+    ACCOUNTS.filter(a => a.id !== "savings").forEach(a => {
+      const bal = balances[a.id];
+      html += `
+        <div class="account-row">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="account-row-icon" style="background:${a.color}22;border:1.5px solid ${a.color}44">${a.icon}</div>
+            <div style="font-size:14px;font-weight:600">${a.name}</div>
+          </div>
+          <div style="font-weight:700;font-size:17px;color:${bal>=0?"#f0ede8":"#ef4444"}">¥${bal.toLocaleString()}</div>
+        </div>`;
+    });
+
+    // month stats
+    const now = new Date();
+    const mTxs = txs.filter(t => { const d = new Date(t.date); return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear(); });
+    const mSpend = mTxs.filter(t => t.type==="expense").reduce((s,t)=>s+t.amount,0);
+    const mEarn  = mTxs.filter(t => t.type==="income").reduce((s,t)=>s+t.amount,0);
+    const mSaved = mTxs.filter(t => t.type==="transfer-out" && t.toAccount==="savings").reduce((s,t)=>s+t.amount,0);
+
+    html += `<div style="margin-top:20px" class="section-label">THIS MONTH</div>
+      <div class="month-grid">
+        <div class="month-card"><div class="month-label">SPENT</div><div class="month-value" style="color:#ef4444">¥${mSpend.toLocaleString()}</div></div>
+        <div class="month-card"><div class="month-label">EARNED</div><div class="month-value" style="color:#22c55e">¥${mEarn.toLocaleString()}</div></div>
+        <div class="month-card gold"><div class="month-label gold">SAVED</div><div class="month-value" style="color:#f59e0b">¥${mSaved.toLocaleString()}</div></div>
+      </div>`;
+
+    html += `<button class="csv-btn" onclick="exportCSV()">⬇ Export All CSV</button>`;
+    html += `</div>`;
+  }
+
+  document.getElementById("app").innerHTML = html;
+}
+
+// ── Setters ────────────────────────────────────────────
+function setView(v)       { view = v; render(); }
+function setType(t)       { type = t; render(); }
+function setAmount(v)     { amount = v; render(); }
+function setAccount(v)    { account = v; render(); }
+function setToAccount(v)  { toAccount = v; render(); }
+function setDate(v)       { date = v; render(); }
+function setFilterDate(v) { filterDate = v; render(); }
+
+// ── Init ───────────────────────────────────────────────
+txs = loadData();
+render();
+</script>
+</body>
+</html>
