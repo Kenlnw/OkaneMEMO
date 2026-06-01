@@ -186,6 +186,21 @@
 
     /* import button */
     .import-wrap { margin-top: 8px; }
+    .clear-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 13px;
+      border-radius: 12px;
+      border: 1.5px solid #ef444422;
+      background: transparent;
+      color: #ef444466;
+      font-size: 12px;
+      letter-spacing: 1px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .clear-btn:hover { border-color: #ef4444; color: #ef4444; }
     .import-btn {
       width: 100%;
       padding: 14px;
@@ -430,6 +445,9 @@ function render() {
     }
 
     html += importBtnHTML();
+    if (txs.length > 0) {
+      html += `<button class="clear-btn" onclick="clearData()">🗑 Clear All Data</button>`;
+    }
     html += `</div>`;
   }
 
@@ -543,6 +561,14 @@ function importBtnHTML() {
       ${imported ? "✓ CSV Loaded — Import Again" : "⬆ Import CSV from iCloud"}
     </button>
   </div>`;
+}
+
+function clearData() {
+  if (!confirm("Clear all data? This cannot be undone.")) return;
+  txs = [];
+  imported = false;
+  localStorage.removeItem("okane_txs");
+  render();
 }
 
 function setView(v)        { view = v; render(); }
