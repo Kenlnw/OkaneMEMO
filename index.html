@@ -92,7 +92,7 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 12px 14px;
-      animation: fadeUp .4s ease both;
+     
     }
     .mini-card-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; }
     .mini-card-value { font-size: 18px; font-weight: 500; }
@@ -116,7 +116,7 @@
       font-family: inherit;
       text-transform: uppercase;
       cursor: pointer;
-      transition: all .15s;
+      transition: color .1s;
     }
     .tab.active { color: var(--text); border-bottom-color: var(--text); }
 
@@ -133,7 +133,7 @@
       border-radius: 14px;
       padding: 16px 18px;
       margin-bottom: 10px;
-      animation: fadeUp .4s ease both;
+     
     }
     .account-card.savings-card {
       border-color: #f59e0b44;
@@ -158,7 +158,7 @@
       justify-content: space-between;
       padding: 14px 0;
       border-bottom: 1px solid var(--border);
-      animation: fadeUp .3s ease both;
+     
     }
     .tx-left { display: flex; align-items: center; gap: 10px; }
     .tx-icon {
@@ -178,7 +178,7 @@
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 14px;
-      animation: fadeUp .4s ease both;
+     
     }
     .month-card.gold { border-color: #f59e0b33; background: #f59e0b08; }
     .month-card-label { font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; }
@@ -198,7 +198,7 @@
       letter-spacing: 1px;
       font-family: inherit;
       cursor: pointer;
-      transition: all .2s;
+      
     }
     .clear-btn:hover { border-color: #ef4444; color: #ef4444; }
     .import-btn {
@@ -213,7 +213,7 @@
       font-family: inherit;
       text-transform: uppercase;
       cursor: pointer;
-      transition: all .2s;
+      
     }
     .import-btn:hover { border-color: #555; color: #888; }
     .import-btn.loaded { border-color: var(--green); color: var(--green); border-style: solid; }
@@ -265,8 +265,8 @@
     }
 
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; }
+      to   { opacity: 1; }
     }
   </style>
 </head>
@@ -416,7 +416,7 @@ function render() {
       // savings first, highlighted
       const sav = ACCOUNTS.find(a => a.id === "savings");
       html += `
-        <div class="account-card savings-card" style="animation-delay:.05s">
+        <div class="account-card savings-card" >
           <div class="account-left">
             <div class="account-icon" style="background:#f59e0b22">${sav.icon}</div>
             <div>
@@ -431,7 +431,7 @@ function render() {
       ACCOUNTS.filter(a => a.id !== "savings").forEach((a, i) => {
         const bal = balances[a.id];
         html += `
-          <div class="account-card" style="animation-delay:${(i+1)*.06}s">
+          <div class="account-card" >
             <div class="account-left">
               <div class="account-icon" style="background:${a.color}22">${a.icon}</div>
               <div>
@@ -480,7 +480,7 @@ function render() {
           sign = "→";
         }
         html += `
-          <div class="tx-row" style="animation-delay:${i*.04}s">
+          <div class="tx-row" >
             <div class="tx-left">
               <div class="tx-icon" style="background:${acc?.color}22">${acc?.icon}</div>
               <div>
@@ -510,19 +510,19 @@ function render() {
 
     html += `<div class="section-label">${now.toLocaleDateString("ja-JP",{year:"numeric",month:"long"})}</div>`;
     html += `<div class="month-grid">
-      <div class="month-card" style="animation-delay:.05s">
+      <div class="month-card" >
         <div class="month-card-label">Spent</div>
         <div class="month-card-value" style="color:#ef4444">¥${mSpend.toLocaleString()}</div>
       </div>
-      <div class="month-card" style="animation-delay:.1s">
+      <div class="month-card" >
         <div class="month-card-label">Earned</div>
         <div class="month-card-value" style="color:#22c55e">¥${mEarn.toLocaleString()}</div>
       </div>
-      <div class="month-card gold" style="animation-delay:.15s">
+      <div class="month-card gold" >
         <div class="month-card-label" style="color:#f59e0b88">Saved</div>
         <div class="month-card-value" style="color:#f59e0b">¥${mSaved.toLocaleString()}</div>
       </div>
-      <div class="month-card" style="animation-delay:.2s;border-color:${mNet>=0?"#22c55e33":"#ef444433"};background:${mNet>=0?"#22c55e08":"#ef444408"}">
+      <div class="month-card" #22c55e33":"#ef444433"};background:${mNet>=0?"#22c55e08":"#ef444408"}">
         <div class="month-card-label">Net</div>
         <div class="month-card-value" style="color:${mNet>=0?"#22c55e":"#ef4444"}">¥${mNet.toLocaleString()}</div>
       </div>
@@ -537,7 +537,7 @@ function render() {
       const val = a.id==="savings" ? saved : spent;
       if (val === 0) return;
       html += `
-        <div class="account-card ${a.id==="savings"?"savings-card":""}" style="animation-delay:${i*.05}s">
+        <div class="account-card ${a.id==="savings"?"savings-card":""}" >
           <div class="account-left">
             <div class="account-icon" style="background:${a.color}22">${a.icon}</div>
             <div class="account-name">${a.display}</div>
